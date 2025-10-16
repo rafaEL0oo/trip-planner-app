@@ -1,0 +1,365 @@
+import React, { useState, useEffect } from 'react';
+import {
+  Card,
+  CardContent,
+  Typography,
+  Box,
+  Chip,
+  CircularProgress,
+  Button,
+} from '@mui/material';
+import { 
+  Hotel as HotelIcon, 
+  OpenInNew as OpenInNewIcon,
+  ContentCopy as CopyIcon,
+  ThumbUp as ThumbUpIcon,
+  ThumbDown as ThumbDownIcon,
+  Favorite as HeartIcon
+} from '@mui/icons-material';
+
+const HotelPreview = ({ url, votes, onVote, userVote, userName }) => {
+  const [preview, setPreview] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  const handleGoToLink = () => {
+    window.open(url, '_blank', 'noopener,noreferrer');
+  };
+
+  const handleCopyLink = async () => {
+    try {
+      await navigator.clipboard.writeText(url);
+      // You could add a toast notification here
+    } catch (err) {
+      console.error('Failed to copy link:', err);
+    }
+  };
+
+  useEffect(() => {
+    const fetchPreview = async () => {
+      try {
+        setLoading(true);
+        
+        // Try to extract real preview data from URL
+        const previewData = await extractRealPreview(url);
+        setPreview(previewData);
+      } catch (err) {
+        // Fallback to simple URL display
+        setPreview(null);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchPreview();
+  }, [url]);
+
+  const extractRealPreview = async (url) => {
+    try {
+      // For now, let's use a simple approach - extract domain and show basic info
+      const urlObj = new URL(url);
+      const domain = urlObj.hostname;
+      
+      // Extract hotel name from URL path if possible
+      const pathParts = urlObj.pathname.split('/').filter(part => part.length > 0);
+      let hotelName = pathParts[pathParts.length - 1] 
+        ? pathParts[pathParts.length - 1].replace(/-/g, ' ').replace(/_/g, ' ')
+        : domain.replace('www.', '').split('.')[0];
+      
+      // Clean up common file extensions and suffixes
+      hotelName = hotelName
+        .replace(/\.(pl|com|html|php)$/g, '')
+        .replace(/\s+/g, ' ')
+        .trim();
+      
+      return {
+        title: hotelName.charAt(0).toUpperCase() + hotelName.slice(1),
+        description: `Hotel booking on ${domain}`,
+        image: null, // No image for now
+        rating: null,
+        price: null,
+        domain: domain
+      };
+    } catch (error) {
+      throw new Error('Invalid URL');
+    }
+  };
+
+  const getVoteIcon = (voteType) => {
+    switch (voteType) {
+      case 'dontLike': return <ThumbDownIcon />;
+      case 'like': return <ThumbUpIcon />;
+      case 'awesome': return <HeartIcon />;
+      default: return null;
+    }
+  };
+
+  const getVoteColor = (voteType) => {
+    switch (voteType) {
+      case 'dontLike': return 'error';
+      case 'like': return 'primary';
+      case 'awesome': return 'secondary';
+      default: return 'default';
+    }
+  };
+
+  if (loading) {
+    return (
+      <Card sx={{ mb: 2 }}>
+        <CardContent>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            <CircularProgress size={24} />
+            <Typography>Loading hotel preview...</Typography>
+          </Box>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // If no preview data, show simple URL display
+  if (!preview) {
+    return (
+      <Card 
+        sx={{ 
+          mb: 2,
+          '&:hover': {
+            boxShadow: 4,
+            transform: 'translateY(-2px)',
+            transition: 'all 0.2s ease-in-out'
+          }
+        }}
+      >
+        <CardContent>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            <HotelIcon sx={{ fontSize: 40, color: 'primary.main' }} />
+            <Box sx={{ flex: 1 }}>
+              <Typography variant="h6" color="primary.main" gutterBottom>
+                Hotel Link ↗
+              </Typography>
+              <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', mt: 2, mb: 2 }}>
+                <Button
+                  variant="contained"
+                  startIcon={<OpenInNewIcon />}
+                  onClick={handleGoToLink}
+                  size="small"
+                  sx={{ minWidth: 'auto', px: 2 }}
+                >
+                  Go to link
+                </Button>
+                <Button
+                  variant="outlined"
+                  startIcon={<CopyIcon />}
+                  onClick={handleCopyLink}
+                  size="small"
+                  sx={{ minWidth: 'auto', px: 2 }}
+                >
+                  Copy link
+                </Button>
+              </Box>
+            </Box>
+          </Box>
+          
+          {/* Voting Section */}
+          <Box sx={{ mt: 2 }} onClick={(e) => e.stopPropagation()}>
+            {userVote ? (
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                <Typography variant="body2" color="text.secondary">
+                  Your vote:
+                </Typography>
+                <Chip
+                  icon={getVoteIcon(userVote)}
+                  label={userVote === 'dontLike' ? "Don't Like" : userVote === 'like' ? 'Like' : 'Awesome'}
+                  color={getVoteColor(userVote)}
+                  variant="filled"
+                />
+                <Typography
+                  variant="body2"
+                  color="primary"
+                  sx={{ cursor: 'pointer', textDecoration: 'underline' }}
+                  onClick={() => onVote(null)}
+                >
+                  Change decision
+                </Typography>
+              </Box>
+            ) : (
+              <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                <Typography variant="body2" color="text.secondary" sx={{ alignSelf: 'center', mr: 1 }}>
+                  Vote:
+                </Typography>
+                {[
+                  { type: 'dontLike', label: "Don't Like", color: 'error', icon: <ThumbDownIcon /> },
+                  { type: 'like', label: 'Like', color: 'primary', icon: <ThumbUpIcon /> },
+                  { type: 'awesome', label: 'Awesome', color: 'secondary', icon: <HeartIcon /> }
+                ].map(({ type, label, color, icon }) => (
+                  <Chip
+                    key={type}
+                    icon={icon}
+                    label={label}
+                    color={color}
+                    variant="outlined"
+                    onClick={() => onVote(type)}
+                    sx={{ cursor: 'pointer' }}
+                  />
+                ))}
+              </Box>
+            )}
+            
+            {/* Vote Summary */}
+            <Box sx={{ mt: 2, display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+              {Object.entries(votes || {})
+                .filter(([voteType, count]) => count > 0)
+                .map(([voteType, count]) => (
+                <Chip
+                  key={voteType}
+                  icon={getVoteIcon(voteType)}
+                  label={`${voteType === 'dontLike' ? "Don't Like" : voteType === 'like' ? 'Like' : 'Awesome'} (${count})`}
+                  size="small"
+                  color={getVoteColor(voteType)}
+                  variant="outlined"
+                />
+              ))}
+            </Box>
+          </Box>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <Card 
+      sx={{ 
+        mb: 2, 
+        overflow: 'hidden',
+        '&:hover': {
+          boxShadow: 4,
+          transform: 'translateY(-2px)',
+          transition: 'all 0.2s ease-in-out'
+        }
+      }}
+    >
+      <Box sx={{ display: 'flex', minHeight: 120 }}>
+        {/* Hotel Image/Icon */}
+        <Box
+          sx={{
+            width: 120,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            bgcolor: 'primary.main',
+            color: 'white',
+            position: 'relative',
+            '&:hover': {
+              bgcolor: 'primary.dark',
+            }
+          }}
+        >
+          <HotelIcon sx={{ fontSize: 40 }} />
+        </Box>
+
+        {/* Hotel Info */}
+        <CardContent sx={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+          <Box>
+            <Typography 
+              variant="h6" 
+              component="h3" 
+              gutterBottom
+              sx={{ 
+                color: 'primary.main',
+                '&:hover': { textDecoration: 'underline' }
+              }}
+            >
+              {preview?.title || 'Hotel Link'} ↗
+            </Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+              {preview?.description || 'Click to view hotel details'}
+            </Typography>
+            
+            <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', mt: 2, mb: 2 }}>
+              <Button
+                variant="contained"
+                startIcon={<OpenInNewIcon />}
+                onClick={handleGoToLink}
+                size="small"
+                sx={{ minWidth: 'auto', px: 2 }}
+              >
+                Go to link
+              </Button>
+              <Button
+                variant="outlined"
+                startIcon={<CopyIcon />}
+                onClick={handleCopyLink}
+                size="small"
+                sx={{ minWidth: 'auto', px: 2 }}
+              >
+                Copy link
+              </Button>
+            </Box>
+          </Box>
+
+          {/* Voting Section */}
+          <Box onClick={(e) => e.stopPropagation()}>
+            {userVote ? (
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                <Typography variant="body2" color="text.secondary">
+                  Your vote:
+                </Typography>
+                <Chip
+                  icon={getVoteIcon(userVote)}
+                  label={userVote === 'dontLike' ? "Don't Like" : userVote === 'like' ? 'Like' : 'Awesome'}
+                  color={getVoteColor(userVote)}
+                  variant="filled"
+                />
+                <Typography
+                  variant="body2"
+                  color="primary"
+                  sx={{ cursor: 'pointer', textDecoration: 'underline' }}
+                  onClick={() => onVote(null)}
+                >
+                  Change decision
+                </Typography>
+              </Box>
+            ) : (
+              <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                <Typography variant="body2" color="text.secondary" sx={{ alignSelf: 'center', mr: 1 }}>
+                  Vote:
+                </Typography>
+                {[
+                  { type: 'dontLike', label: "Don't Like", color: 'error', icon: <ThumbDownIcon /> },
+                  { type: 'like', label: 'Like', color: 'primary', icon: <ThumbUpIcon /> },
+                  { type: 'awesome', label: 'Awesome', color: 'secondary', icon: <HeartIcon /> }
+                ].map(({ type, label, color, icon }) => (
+                  <Chip
+                    key={type}
+                    icon={icon}
+                    label={label}
+                    color={color}
+                    variant="outlined"
+                    onClick={() => onVote(type)}
+                    sx={{ cursor: 'pointer' }}
+                  />
+                ))}
+              </Box>
+            )}
+            
+            {/* Vote Summary */}
+            <Box sx={{ mt: 2, display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+              {Object.entries(votes || {})
+                .filter(([voteType, count]) => count > 0)
+                .map(([voteType, count]) => (
+                <Chip
+                  key={voteType}
+                  icon={getVoteIcon(voteType)}
+                  label={`${voteType === 'dontLike' ? "Don't Like" : voteType === 'like' ? 'Like' : 'Awesome'} (${count})`}
+                  size="small"
+                  color={getVoteColor(voteType)}
+                  variant="outlined"
+                />
+              ))}
+            </Box>
+          </Box>
+        </CardContent>
+      </Box>
+    </Card>
+  );
+};
+
+export default HotelPreview;

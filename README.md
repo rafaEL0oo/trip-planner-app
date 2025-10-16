@@ -1,70 +1,127 @@
-# Getting Started with Create React App
+# Trip Rating App
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+A collaborative trip planning web application built with React and Firebase. Users can create trip pages, share them with friends via unique URLs, and collaboratively vote on hotels and rate activities.
 
-## Available Scripts
+## Features
 
-In the project directory, you can run:
+### 🏨 Hotel Voting
+- Add hotel options with URLs
+- Friends can vote with three options:
+  - ❌ Don't Like
+  - 👍 Like  
+  - ⭐ Awesome
+- Real-time vote counting
 
-### `npm start`
+### 🎯 Activity Rating
+- Add activity suggestions with descriptions
+- Rate activities from 1-5 stars:
+  - 1: Not Interested
+  - 2: Maybe
+  - 3: Interested
+  - 4: Really Want To Do
+  - 5: Must Do It
+- Average rating calculation
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+### 💬 Comments System
+- Comment on both hotels and activities
+- Real-time comment display
+- Anonymous commenting (can be extended with authentication)
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+### 🔗 Easy Sharing
+- Generate unique URLs for each trip
+- Share trip links with friends instantly
+- No registration required
 
-### `npm test`
+## Tech Stack
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+- **Frontend**: React 19, Material-UI
+- **Backend**: Firebase Firestore
+- **Routing**: React Router DOM
+- **Styling**: Material-UI with custom theme
 
-### `npm run build`
+## Setup Instructions
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+### 1. Install Dependencies
+```bash
+npm install
+```
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+### 2. Configure Firebase
+1. Create a new Firebase project at [Firebase Console](https://console.firebase.google.com/)
+2. Enable Firestore Database
+3. Copy your Firebase configuration
+4. Update `src/firebase.js` with your configuration:
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+```javascript
+const firebaseConfig = {
+  apiKey: "your-api-key",
+  authDomain: "your-project.firebaseapp.com",
+  projectId: "your-project-id",
+  storageBucket: "your-project.appspot.com",
+  messagingSenderId: "123456789",
+  appId: "your-app-id"
+};
+```
 
-### `npm run eject`
+### 3. Start Development Server
+```bash
+npm start
+```
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+The app will be available at `http://localhost:3000`
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+## Usage
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+1. **Create a Trip**: Click "Create New Trip" and fill in trip details
+2. **Share the Trip**: Use the "Share Trip" button to copy the unique URL
+3. **Add Hotels**: Share hotel booking links for friends to vote on
+4. **Add Activities**: Suggest activities with descriptions for rating
+5. **Vote & Rate**: Friends can vote on hotels and rate activities
+6. **Comment**: Add comments to discuss options
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+## Project Structure
 
-## Learn More
+```
+src/
+├── components/
+│   ├── HomePage.js          # Landing page with features
+│   ├── CreateTrip.js        # Trip creation form
+│   └── TripPage.js          # Main trip page with voting/rating
+├── firebase.js              # Firebase configuration
+└── App.js                   # Main app component with routing
+```
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+## Firebase Collections
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+### trips
+- `id`: Unique trip identifier
+- `title`: Trip title
+- `destination`: Trip destination
+- `description`: Trip description
+- `startDate`: Trip start date
+- `endDate`: Trip end date
+- `hotels`: Array of hotel objects with votes and comments
+- `activities`: Array of activity objects with ratings and comments
+- `createdAt`: Creation timestamp
 
-### Code Splitting
+## Future Enhancements
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
+- User authentication and profiles
+- Real-time updates with Firebase listeners
+- Image uploads for hotels and activities
+- Trip templates
+- Email notifications
+- Mobile app version
+- Advanced analytics and insights
 
-### Analyzing the Bundle Size
+## Contributing
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Test thoroughly
+5. Submit a pull request
 
-### Making a Progressive Web App
+## License
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
-
-### Advanced Configuration
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
-
-### Deployment
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
-
-### `npm run build` fails to minify
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+MIT License - feel free to use this project for your own trip planning needs!
