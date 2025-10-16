@@ -317,7 +317,7 @@ const TripPage = () => {
   }) || [];
 
   const shareTrip = () => {
-    const url = `${window.location.origin}/trip/${tripId}`;
+    const url = `${window.location.origin}/#/trip/${tripId}`;
     navigator.clipboard.writeText(url);
     alert('Trip URL copied to clipboard!');
   };
