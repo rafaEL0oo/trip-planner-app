@@ -160,6 +160,7 @@ const HotelPreview = ({ url, votes, onVote, userVote, userName }) => {
     } catch (err) {
       // Even if API fails, try to show extracted title
       const fallbackTitle = extractTitleFromUrl(urlToFetch);
+      const cleanedUrl = cleanUrl(urlToFetch);
       const extractedMetadata = {
         title: fallbackTitle,
         description: '',
