@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Card,
   CardContent,
@@ -24,9 +24,9 @@ const UrlPreview = ({ url, onMetadataChange }) => {
       setMetadata(null);
       setError('');
     }
-  }, [url]);
+  }, [url, fetchUrlMetadata]);
 
-  const fetchUrlMetadata = async (urlToFetch) => {
+  const fetchUrlMetadata = useCallback(async (urlToFetch) => {
     setLoading(true);
     setError('');
     
@@ -65,7 +65,7 @@ const UrlPreview = ({ url, onMetadataChange }) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [onMetadataChange]);
 
   if (loading) {
     return (
