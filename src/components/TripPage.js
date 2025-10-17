@@ -24,6 +24,9 @@ import {
   Comment as CommentIcon,
   Send as SendIcon,
   FlightTakeoff as FlightIcon,
+  Luggage as LuggageIcon,
+  CheckCircle as CheckCircleIcon,
+  RadioButtonUnchecked as RadioButtonUncheckedIcon,
 } from '@mui/icons-material';
 import { collection, query, where, getDocs, updateDoc, doc } from 'firebase/firestore';
 import { db } from '../firebase';
@@ -43,6 +46,8 @@ const TripPage = () => {
   const [newActivityDescription, setNewActivityDescription] = useState('');
   const [newComments, setNewComments] = useState({});
   const [expandedComments, setExpandedComments] = useState({});
+  const [showCommentInput, setShowCommentInput] = useState({});
+  const [newPackingItem, setNewPackingItem] = useState('');
 
   useEffect(() => {
     loadTrip();
@@ -140,6 +145,66 @@ const TripPage = () => {
       console.log('Activity added and saved to Firebase:', activity);
     } catch (error) {
       console.error('Error adding activity:', error);
+    }
+  };
+
+  const addPackingItem = async () => {
+    if (!newPackingItem.trim() || !tripDocId) return;
+
+    try {
+      const packingItem = {
+        id: Date.now().toString(),
+        name: newPackingItem,
+        assignedTo: null,
+        comments: [],
+        addedAt: new Date(),
+      };
+
+      const updatedPackingList = [...(trip.packingList || []), packingItem];
+      const updatedTrip = {
+        ...trip,
+        packingList: updatedPackingList,
+      };
+
+      // Update local state
+      setTrip(updatedTrip);
+      setNewPackingItem('');
+
+      // Save to Firebase
+      const tripRef = doc(db, 'trips', tripDocId);
+      await updateDoc(tripRef, {
+        packingList: updatedPackingList
+      });
+
+      console.log('Packing item added and saved to Firebase:', packingItem);
+    } catch (error) {
+      console.error('Error adding packing item:', error);
+    }
+  };
+
+  const assignPackingItem = async (itemId, assignToUser) => {
+    if (!tripDocId) return;
+
+    try {
+      const updatedPackingList = trip.packingList.map(item => {
+        if (item.id === itemId) {
+          return { ...item, assignedTo: assignToUser };
+        }
+        return item;
+      });
+
+      // Update local state
+      setTrip({ ...trip, packingList: updatedPackingList });
+
+      // Save to Firebase
+      const tripRef = doc(db, 'trips', tripDocId);
+      await updateDoc(tripRef, {
+        packingList: updatedPackingList
+      });
+
+      console.log('Packing item assignment saved to Firebase:', { itemId, assignToUser });
+    } catch (error) {
+      console.error('Error saving packing item assignment:', error);
     }
   };
 
@@ -265,7 +330,7 @@ const TripPage = () => {
         await updateDoc(tripRef, {
           hotels: updatedHotels
         });
-      } else {
+      } else if (type === 'activity') {
         const updatedActivities = trip.activities.map(activity => {
           if (activity.id === itemId) {
             return { ...activity, comments: [...activity.comments, comment] };
@@ -280,6 +345,22 @@ const TripPage = () => {
         const tripRef = doc(db, 'trips', tripDocId);
         await updateDoc(tripRef, {
           activities: updatedActivities
+        });
+      } else if (type === 'packing') {
+        const updatedPackingList = trip.packingList.map(item => {
+          if (item.id === itemId) {
+            return { ...item, comments: [...item.comments, comment] };
+          }
+          return item;
+        });
+        
+        // Update local state
+        setTrip({ ...trip, packingList: updatedPackingList });
+
+        // Save to Firebase
+        const tripRef = doc(db, 'trips', tripDocId);
+        await updateDoc(tripRef, {
+          packingList: updatedPackingList
         });
       }
 
@@ -304,6 +385,13 @@ const TripPage = () => {
 
   const toggleCommentsExpansion = (type, itemId) => {
     setExpandedComments(prev => ({
+      ...prev,
+      [`${type}-${itemId}`]: !prev[`${type}-${itemId}`]
+    }));
+  };
+
+  const toggleCommentInput = (type, itemId) => {
+    setShowCommentInput(prev => ({
       ...prev,
       [`${type}-${itemId}`]: !prev[`${type}-${itemId}`]
     }));
@@ -401,6 +489,7 @@ const TripPage = () => {
           <Tabs value={activeTab} onChange={(e, newValue) => setActiveTab(newValue)}>
             <Tab icon={<HotelIcon />} label="🏨 Hotels" />
             <Tab icon={<ActivityIcon />} label="🎯 Activities" />
+            <Tab icon={<LuggageIcon />} label="🧳 Packing List" />
           </Tabs>
         </Box>
 
@@ -778,6 +867,174 @@ const TripPage = () => {
                 </CardContent>
               </Card>
             ))}
+          </CardContent>
+        )}
+
+        {/* Packing List Tab */}
+        {activeTab === 2 && (
+          <CardContent>
+            {/* Add Packing Item */}
+            <Box sx={{ mb: 3, p: 2, bgcolor: 'grey.50', borderRadius: 1 }}>
+              <Typography variant="h6" gutterBottom>
+                Add Packing Item
+              </Typography>
+              <Box sx={{ display: 'flex', gap: 2, mb: 2 }}>
+                <TextField
+                  fullWidth
+                  label="Item to pack"
+                  value={newPackingItem}
+                  onChange={(e) => setNewPackingItem(e.target.value)}
+                  placeholder="e.g., Camera, Sunscreen, Passport..."
+                />
+                <Button
+                  variant="contained"
+                  startIcon={<AddIcon />}
+                  onClick={addPackingItem}
+                  disabled={!newPackingItem.trim()}
+                >
+                  Add
+                </Button>
+              </Box>
+            </Box>
+
+            {/* Packing List Items */}
+            {(trip.packingList || []).map((item) => (
+              <Card key={item.id} sx={{ mb: 2 }}>
+                <CardContent sx={{ py: 2 }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                      <IconButton
+                        onClick={() => assignPackingItem(item.id, item.assignedTo ? null : user.name)}
+                        color={item.assignedTo ? 'success' : 'default'}
+                        sx={{ p: 0.5 }}
+                      >
+                        {item.assignedTo ? (
+                          <CheckCircleIcon sx={{ fontSize: 24 }} />
+                        ) : (
+                          <RadioButtonUncheckedIcon sx={{ fontSize: 24 }} />
+                        )}
+                      </IconButton>
+                      <Typography 
+                        variant="h6" 
+                        sx={{ 
+                          textDecoration: item.assignedTo ? 'line-through' : 'none',
+                          opacity: item.assignedTo ? 0.6 : 1,
+                          fontWeight: 600,
+                          fontSize: '1.1rem'
+                        }}
+                      >
+                        {item.name}
+                      </Typography>
+                    </Box>
+                    
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      {item.assignedTo && (
+                        <Chip
+                          label={`Assigned to: ${item.assignedTo}`}
+                          color="success"
+                          variant="outlined"
+                          size="small"
+                        />
+                      )}
+                      
+                      {/* Comment buttons */}
+                      {item.comments.length > 0 && (
+                        <Button
+                          size="small"
+                          onClick={() => toggleCommentsExpansion('packing', item.id)}
+                          sx={{ 
+                            textTransform: 'none', 
+                            minWidth: 'auto',
+                            fontSize: '0.75rem',
+                            px: 1
+                          }}
+                        >
+                          {expandedComments[`packing-${item.id}`] ? 'Hide' : `Comments (${item.comments.length})`}
+                        </Button>
+                      )}
+                      
+                      <Button
+                        size="small"
+                        startIcon={<CommentIcon />}
+                        onClick={() => toggleCommentInput('packing', item.id)}
+                        sx={{ 
+                          textTransform: 'none', 
+                          minWidth: 'auto',
+                          fontSize: '0.75rem',
+                          px: 1
+                        }}
+                      >
+                        {showCommentInput[`packing-${item.id}`] ? 'Cancel' : 'Comment'}
+                      </Button>
+                    </Box>
+                  </Box>
+
+                  {/* Comments Section - Only show when expanded */}
+                  {expandedComments[`packing-${item.id}`] && item.comments.length > 0 && (
+                    <Box sx={{ mt: 2, p: 2, bgcolor: 'grey.50', borderRadius: 1 }}>
+                      {item.comments.map((comment) => (
+                        <Box key={comment.id} sx={{ mb: 2, '&:last-child': { mb: 0 } }}>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+                            <Avatar sx={{ width: 20, height: 20, bgcolor: 'tertiary.main', fontSize: '0.75rem' }}>
+                              {comment.author.charAt(0).toUpperCase()}
+                            </Avatar>
+                            <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 500 }}>
+                              {comment.author}
+                            </Typography>
+                            <Typography variant="caption" color="text.secondary">
+                              {new Date(comment.createdAt).toLocaleDateString()}
+                            </Typography>
+                          </Box>
+                          <Typography variant="body2" sx={{ fontSize: '0.875rem' }}>
+                            {comment.text}
+                          </Typography>
+                        </Box>
+                      ))}
+                    </Box>
+                  )}
+
+                  {/* Add Comment Input - Only show when toggled */}
+                  {showCommentInput[`packing-${item.id}`] && (
+                    <Box sx={{ mt: 2, display: 'flex', gap: 1, alignItems: 'flex-end' }}>
+                      <TextField
+                        fullWidth
+                        multiline
+                        rows={2}
+                        placeholder="Add a comment..."
+                        value={newComments[`packing-${item.id}`] || ''}
+                        onChange={(e) => handleCommentChange('packing', item.id, e.target.value)}
+                        variant="outlined"
+                        size="small"
+                      />
+                      <IconButton
+                        color="primary"
+                        onClick={() => {
+                          addComment('packing', item.id);
+                          setShowCommentInput(prev => ({ ...prev, [`packing-${item.id}`]: false }));
+                        }}
+                        disabled={!newComments[`packing-${item.id}`]?.trim()}
+                        sx={{ mb: 0.5 }}
+                      >
+                        <SendIcon />
+                      </IconButton>
+                    </Box>
+                  )}
+                </CardContent>
+              </Card>
+            ))}
+
+            {/* Empty state */}
+            {(!trip.packingList || trip.packingList.length === 0) && (
+              <Box sx={{ textAlign: 'center', py: 4 }}>
+                <LuggageIcon sx={{ fontSize: 64, color: 'grey.400', mb: 2 }} />
+                <Typography variant="h6" color="text.secondary" gutterBottom>
+                  No packing items yet
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  Start adding items to your packing list above
+                </Typography>
+              </Box>
+            )}
           </CardContent>
         )}
       </Card>
