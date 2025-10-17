@@ -37,15 +37,38 @@ const HotelPreview = ({ url, votes, onVote, userVote, userName }) => {
     }
   };
 
+  const cleanUrl = (url) => {
+    try {
+      const urlObj = new URL(url.startsWith('http') ? url : `https://${url}`);
+      
+      // For booking.com URLs, extract the base hotel URL without parameters
+      if (urlObj.hostname.includes('booking.com')) {
+        const pathParts = urlObj.pathname.split('/');
+        if (pathParts.length >= 4 && pathParts[1] === 'hotel') {
+          // Extract country and hotel ID from path like /hotel/hr/villa-perla-krk.pl.html
+          const country = pathParts[2];
+          const hotelId = pathParts[3];
+          return `https://www.booking.com/hotel/${country}/${hotelId}`;
+        }
+      }
+      
+      // For other URLs, remove query parameters but keep the base URL
+      return `${urlObj.protocol}//${urlObj.hostname}${urlObj.pathname}`;
+    } catch (error) {
+      // If URL parsing fails, return the original URL
+      return url.startsWith('http') ? url : `https://${url}`;
+    }
+  };
+
   const fetchUrlMetadata = useCallback(async (urlToFetch) => {
     setLoading(true);
     setError('');
     
     try {
-      // Ensure URL has protocol
-      const fullUrl = urlToFetch.startsWith('http') ? urlToFetch : `https://${urlToFetch}`;
+      // Clean the URL to remove parameters and get the base hotel page
+      const cleanedUrl = cleanUrl(urlToFetch);
       
-      const response = await fetch(`https://api.microlink.io/?url=${encodeURIComponent(fullUrl)}`);
+      const response = await fetch(`https://api.microlink.io/?url=${encodeURIComponent(cleanedUrl)}`);
       
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -58,7 +81,7 @@ const HotelPreview = ({ url, votes, onVote, userVote, userName }) => {
           title: data.data.title || 'Hotel Link',
           description: data.data.description || '',
           image: data.data.image?.url || '',
-          url: data.data.url || fullUrl,
+          url: data.data.url || cleanedUrl,
           site: data.data.publisher || data.data.site || '',
           author: data.data.author || '',
           publishedDate: data.data.publishedDate || '',
