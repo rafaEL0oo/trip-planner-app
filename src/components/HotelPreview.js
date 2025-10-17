@@ -37,6 +37,51 @@ const HotelPreview = ({ url, votes, onVote, userVote, userName }) => {
     }
   };
 
+  const extractTitleFromUrl = (url) => {
+    try {
+      const urlObj = new URL(url.startsWith('http') ? url : `https://${url}`);
+      
+      // For booking.com URLs, extract hotel name from path
+      if (urlObj.hostname.includes('booking.com')) {
+        const pathParts = urlObj.pathname.split('/');
+        if (pathParts.length >= 4 && pathParts[1] === 'hotel') {
+          const hotelId = pathParts[3];
+          // Convert hotel ID to readable title
+          // e.g., "villa-perla-krk.pl.html" -> "Villa Perla Krk"
+          let title = hotelId
+            .replace(/\.(pl|com|html|php)$/g, '') // Remove file extensions
+            .replace(/-/g, ' ') // Replace hyphens with spaces
+            .replace(/_/g, ' ') // Replace underscores with spaces
+            .split(' ')
+            .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+            .join(' ');
+          
+          return title;
+        }
+      }
+      
+      // For other hotel sites, try to extract from path
+      if (urlObj.hostname.includes('hotels.com') || urlObj.hostname.includes('expedia.com')) {
+        const pathParts = urlObj.pathname.split('/').filter(part => part.length > 0);
+        if (pathParts.length > 0) {
+          const lastPart = pathParts[pathParts.length - 1];
+          return lastPart
+            .replace(/-/g, ' ')
+            .replace(/_/g, ' ')
+            .split(' ')
+            .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+            .join(' ');
+        }
+      }
+      
+      // Fallback: use domain name
+      return urlObj.hostname.replace('www.', '').split('.')[0].charAt(0).toUpperCase() + 
+             urlObj.hostname.replace('www.', '').split('.')[0].slice(1);
+    } catch (error) {
+      return 'Hotel Link';
+    }
+  };
+
   const cleanUrl = (url) => {
     try {
       const urlObj = new URL(url.startsWith('http') ? url : `https://${url}`);
@@ -77,8 +122,17 @@ const HotelPreview = ({ url, votes, onVote, userVote, userName }) => {
       const data = await response.json();
       
       if (data.status === 'success') {
+        // Extract fallback title from URL if API doesn't provide a good title
+        const fallbackTitle = extractTitleFromUrl(urlToFetch);
+        const apiTitle = data.data.title;
+        
+        // Use API title if it's meaningful, otherwise use extracted title
+        const finalTitle = (apiTitle && apiTitle !== 'Hotel Link' && apiTitle.length > 3) 
+          ? apiTitle 
+          : fallbackTitle;
+        
         const extractedMetadata = {
-          title: data.data.title || 'Hotel Link',
+          title: finalTitle,
           description: data.data.description || '',
           image: data.data.image?.url || '',
           url: data.data.url || cleanedUrl,
@@ -89,11 +143,35 @@ const HotelPreview = ({ url, votes, onVote, userVote, userName }) => {
         
         setPreview(extractedMetadata);
       } else {
-        throw new Error(data.message || 'Failed to fetch metadata');
+        // If API fails, create metadata with extracted title
+        const fallbackTitle = extractTitleFromUrl(urlToFetch);
+        const extractedMetadata = {
+          title: fallbackTitle,
+          description: '',
+          image: '',
+          url: cleanedUrl,
+          site: '',
+          author: '',
+          publishedDate: '',
+        };
+        
+        setPreview(extractedMetadata);
       }
     } catch (err) {
-      setError(err.message);
-      setPreview(null);
+      // Even if API fails, try to show extracted title
+      const fallbackTitle = extractTitleFromUrl(urlToFetch);
+      const extractedMetadata = {
+        title: fallbackTitle,
+        description: '',
+        image: '',
+        url: cleanedUrl,
+        site: '',
+        author: '',
+        publishedDate: '',
+      };
+      
+      setPreview(extractedMetadata);
+      setError(''); // Don't show error, just use fallback
     } finally {
       setLoading(false);
     }
