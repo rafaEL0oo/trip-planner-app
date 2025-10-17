@@ -10,12 +10,10 @@ import {
   Paper,
   Alert,
   CircularProgress,
-  Divider,
 } from '@mui/material';
-import { Save as SaveIcon, ArrowBack as BackIcon, Link as LinkIcon } from '@mui/icons-material';
+import { Save as SaveIcon, ArrowBack as BackIcon } from '@mui/icons-material';
 import { collection, addDoc } from 'firebase/firestore';
 import { db } from '../firebase';
-import UrlPreview from './UrlPreview';
 
 const CreateTrip = () => {
   const navigate = useNavigate();
@@ -25,9 +23,7 @@ const CreateTrip = () => {
     destination: '',
     startDate: '',
     endDate: '',
-    url: '',
   });
-  const [urlMetadata, setUrlMetadata] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -63,7 +59,6 @@ const CreateTrip = () => {
         hotels: [],
         activities: [],
         comments: [],
-        urlMetadata: urlMetadata,
       };
 
       // Save to Firebase
@@ -160,30 +155,6 @@ const CreateTrip = () => {
                 />
               </Box>
 
-              <Divider sx={{ my: 3 }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <LinkIcon color="primary" />
-                  <Typography variant="body2" color="primary" sx={{ fontWeight: 600 }}>
-                    Add Related Link (Optional)
-                  </Typography>
-                </Box>
-              </Divider>
-
-              <TextField
-                fullWidth
-                label="Related URL"
-                name="url"
-                value={tripData.url}
-                onChange={handleInputChange}
-                sx={{ mb: 2 }}
-                placeholder="https://example.com or example.com"
-                helperText="Add a link to a hotel, activity, or any related resource for this trip"
-              />
-
-              <UrlPreview 
-                url={tripData.url} 
-                onMetadataChange={setUrlMetadata}
-              />
 
               <Button
                 type="submit"
