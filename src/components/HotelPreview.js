@@ -110,41 +110,55 @@ const HotelPreview = ({ url, votes, onVote, userVote, userName }) => {
     setError('');
     
     try {
-      // Clean the URL to remove parameters and get the base hotel page
       const cleanedUrl = cleanUrl(urlToFetch);
+      const fallbackTitle = extractTitleFromUrl(urlToFetch);
       
-      const response = await fetch(`https://api.microlink.io/?url=${encodeURIComponent(cleanedUrl)}`);
+      // Try both URLs: cleaned (without parameters) and original (with parameters)
+      const urlsToTry = [cleanedUrl, urlToFetch];
+      let bestMetadata = null;
       
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+      for (const testUrl of urlsToTry) {
+        try {
+          const response = await fetch(`https://api.microlink.io/?url=${encodeURIComponent(testUrl)}`);
+          
+          if (response.ok) {
+            const data = await response.json();
+            
+            if (data.status === 'success' && data.data) {
+              const currentMetadata = {
+                title: data.data.title || fallbackTitle,
+                description: data.data.description || '',
+                image: data.data.image?.url || '',
+                url: data.data.url || testUrl,
+                site: data.data.publisher || data.data.site || '',
+                author: data.data.author || '',
+                publishedDate: data.data.publishedDate || '',
+              };
+              
+              // Use this metadata if it's better than what we have
+              if (!bestMetadata || 
+                  (currentMetadata.image && !bestMetadata.image) ||
+                  (currentMetadata.title && currentMetadata.title !== 'Hotel Link' && 
+                   (!bestMetadata.title || bestMetadata.title === 'Hotel Link'))) {
+                bestMetadata = currentMetadata;
+              }
+            }
+          }
+        } catch (err) {
+          // Continue to next URL if this one fails
+          continue;
+        }
       }
       
-      const data = await response.json();
-      
-      if (data.status === 'success') {
-        // Extract fallback title from URL if API doesn't provide a good title
-        const fallbackTitle = extractTitleFromUrl(urlToFetch);
-        const apiTitle = data.data.title;
-        
-        // Use API title if it's meaningful, otherwise use extracted title
-        const finalTitle = (apiTitle && apiTitle !== 'Hotel Link' && apiTitle.length > 3) 
-          ? apiTitle 
-          : fallbackTitle;
-        
-        const extractedMetadata = {
-          title: finalTitle,
-          description: data.data.description || '',
-          image: data.data.image?.url || '',
-          url: data.data.url || cleanedUrl,
-          site: data.data.publisher || data.data.site || '',
-          author: data.data.author || '',
-          publishedDate: data.data.publishedDate || '',
-        };
-        
-        setPreview(extractedMetadata);
+      // If we found good metadata, use it
+      if (bestMetadata) {
+        // Ensure we have a good title
+        if (!bestMetadata.title || bestMetadata.title === 'Hotel Link' || bestMetadata.title.length < 3) {
+          bestMetadata.title = fallbackTitle;
+        }
+        setPreview(bestMetadata);
       } else {
-        // If API fails, create metadata with extracted title
-        const fallbackTitle = extractTitleFromUrl(urlToFetch);
+        // Fallback to extracted title if no API data
         const extractedMetadata = {
           title: fallbackTitle,
           description: '',
@@ -154,11 +168,10 @@ const HotelPreview = ({ url, votes, onVote, userVote, userName }) => {
           author: '',
           publishedDate: '',
         };
-        
         setPreview(extractedMetadata);
       }
     } catch (err) {
-      // Even if API fails, try to show extracted title
+      // Even if everything fails, try to show extracted title
       const fallbackTitle = extractTitleFromUrl(urlToFetch);
       const cleanedUrl = cleanUrl(urlToFetch);
       const extractedMetadata = {
@@ -230,7 +243,19 @@ const HotelPreview = ({ url, votes, onVote, userVote, userName }) => {
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
             <HotelIcon sx={{ fontSize: 40, color: 'primary.main' }} />
             <Box sx={{ flex: 1 }}>
-              <Typography variant="h6" color="primary.main" gutterBottom>
+              <Typography 
+                variant="h6" 
+                color="primary.main" 
+                gutterBottom
+                onClick={handleGoToLink}
+                sx={{ 
+                  cursor: 'pointer',
+                  '&:hover': { 
+                    textDecoration: 'underline',
+                    color: 'primary.dark'
+                  }
+                }}
+              >
                 Hotel Link ↗
               </Typography>
               <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', mt: 2, mb: 2 }}>
@@ -339,7 +364,19 @@ const HotelPreview = ({ url, votes, onVote, userVote, userName }) => {
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
             <HotelIcon sx={{ fontSize: 40, color: 'primary.main' }} />
             <Box sx={{ flex: 1 }}>
-              <Typography variant="h6" color="primary.main" gutterBottom>
+              <Typography 
+                variant="h6" 
+                color="primary.main" 
+                gutterBottom
+                onClick={handleGoToLink}
+                sx={{ 
+                  cursor: 'pointer',
+                  '&:hover': { 
+                    textDecoration: 'underline',
+                    color: 'primary.dark'
+                  }
+                }}
+              >
                 Hotel Link ↗
               </Typography>
               <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', mt: 2, mb: 2 }}>
@@ -482,9 +519,14 @@ const HotelPreview = ({ url, votes, onVote, userVote, userName }) => {
               variant="h6" 
               component="h3" 
               gutterBottom
+              onClick={handleGoToLink}
               sx={{ 
                 color: 'primary.main',
-                '&:hover': { textDecoration: 'underline' }
+                cursor: 'pointer',
+                '&:hover': { 
+                  textDecoration: 'underline',
+                  color: 'primary.dark'
+                }
               }}
             >
               {preview?.title || 'Hotel Link'} ↗
