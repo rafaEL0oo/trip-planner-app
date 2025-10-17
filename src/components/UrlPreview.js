@@ -17,15 +17,6 @@ const UrlPreview = ({ url, onMetadataChange }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  useEffect(() => {
-    if (url && url.trim()) {
-      fetchUrlMetadata(url);
-    } else {
-      setMetadata(null);
-      setError('');
-    }
-  }, [url, fetchUrlMetadata]);
-
   const fetchUrlMetadata = useCallback(async (urlToFetch) => {
     setLoading(true);
     setError('');
@@ -66,6 +57,15 @@ const UrlPreview = ({ url, onMetadataChange }) => {
       setLoading(false);
     }
   }, [onMetadataChange]);
+
+  useEffect(() => {
+    if (url && url.trim()) {
+      fetchUrlMetadata(url);
+    } else {
+      setMetadata(null);
+      setError('');
+    }
+  }, [url, fetchUrlMetadata]);
 
   if (loading) {
     return (
