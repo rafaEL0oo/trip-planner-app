@@ -15,7 +15,6 @@ import {
   CircularProgress,
   Avatar,
   Paper,
-  Link,
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -25,8 +24,6 @@ import {
   Comment as CommentIcon,
   Send as SendIcon,
   FlightTakeoff as FlightIcon,
-  Link as LinkIcon,
-  OpenInNew as OpenIcon,
 } from '@mui/icons-material';
 import { collection, query, where, getDocs, updateDoc, doc } from 'firebase/firestore';
 import { db } from '../firebase';
